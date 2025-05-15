@@ -1,6 +1,6 @@
 # Prosthetic-MI-BCI
 
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#requirements)  
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#quick-start)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)  
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
 
@@ -11,12 +11,12 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 
 ## 🚀 Table of Contents
 
-1. [Features](#✨-features)  
-2. [Architecture](#🏗-architecture)  
-3. [Hardware](#🧩-hardware)  
-4. [Pipeline Diagram](#📊-bci-pipeline-flow-diagram)  
-5. [Quick Start](#🚀-quick-start)  
-6. [License](#📄-license)  
+1. [Features](#features)  
+2. [Architecture](#architecture)  
+3. [Hardware](#hardware)  
+4. [Pipeline Diagram](#bci-pipeline-flow-diagram)  
+5. [Quick Start](#quick-start)  
+6. [License](#license)  
 
 ---
 
@@ -44,9 +44,9 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 This pipeline was developed and tested with:
 
 - **OpenBCI Cyton Biosensing Board (8-channel, 250 Hz)** – USB or BLE connection; BrainFlow API support  
-  https://shop.openbci.com/products/cyton-biosensing-board-8-channel?_pos=2&_fid=a378dc910&_ss=c  
+  https://shop.openbci.com/products/cyton-biosensing-board-8-channel  
 - **Ultracortex “Mark IV” EEG Headset (8-channel)** – comfortable head-mounted electrode array  
-  https://shop.openbci.com/products/ultracortex-mark-iv?_pos=5&_fid=a378dc910&_ss=c  
+  https://shop.openbci.com/products/ultracortex-mark-iv  
 
 Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by changing the `board_id` in `config.yaml`.
 
@@ -55,7 +55,7 @@ Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by cha
 ## 📊 BCI Pipeline Flow Diagram
 
 <p align="center">
-  <img src="./main.jpg" alt="Sequential BCI Pipeline" width="400"/>
+  <img src="./main.jpg" alt="Sequential BCI Pipeline" width="400" />
 </p>
 
 ---
@@ -66,17 +66,23 @@ Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by cha
    ```bash
    git clone https://github.com/fletchere171/Prosthetic-MI-BCI.git
    cd Prosthetic-MI-BCI
+   ```
 
 2. **Create & activate a virtual environment**  
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate      # macOS/Linux
    .\.venv\Scripts\activate       # Windows
+   ```
 
 3. **Install dependencies**  
    ```bash
    pip install -r requirements.txt
+   ```
+
+---
 
 ## 📄 License
+
 This project is licensed under the **MIT License**.  
 See the [LICENSE](LICENSE) file for full text and details.
