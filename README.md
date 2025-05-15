@@ -1,7 +1,6 @@
 # Prosthetic-MI-BCI
 
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#quick-start)  
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)  
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#quick-start)    
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
 
 A toggle-based motor-imagery BCI pipeline for prosthetic grasp control.  
@@ -9,18 +8,17 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 
 ---
 
-## 🚀 Table of Contents
+## Table of Contents
 
 1. [Features](#features)  
 2. [Architecture](#architecture)  
 3. [Hardware](#hardware)  
 4. [Pipeline Diagram](#bci-pipeline-flow-diagram)  
 5. [Quick Start](#quick-start)  
-6. [License](#license)  
 
 ---
 
-## ✨ Features
+## Features
 
 - **Offline collection**: record 5–8 min of EEG, segment into epochs (BIDS-EEG HDF5/FIF).  
 - **Online calibration**: real-time confidence bar + threshold/adaptive tuning.  
@@ -30,7 +28,7 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 1. **collect** – record & save raw/epoched EEG  
 2. **train**   – fine-tune classifier & threshold with live feedback  
@@ -39,7 +37,7 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 
 ---
 
-## 🧩 Hardware
+## Hardware
 
 This pipeline was developed and tested with:
 
@@ -52,7 +50,7 @@ Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by cha
 
 ---
 
-## 📊 BCI Pipeline Flow Diagram
+## BCI Pipeline Flow Diagram
 
 <p align="center">
   <img src="./main.jpg" alt="Sequential BCI Pipeline" width="400" />
@@ -60,7 +58,7 @@ Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by cha
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Clone the repo**  
    ```bash
@@ -79,10 +77,4 @@ Other BrainFlow-supported boards (PiEEG, Muse, Ganglion) can also be used by cha
    ```bash
    pip install -r requirements.txt
    ```
-
 ---
-
-## 📄 License
-
-This project is licensed under the **MIT License**.  
-See the [LICENSE](LICENSE) file for full text and details.
