@@ -41,6 +41,12 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 
 ---
 
+## 📊 BCI Pipeline Flow Diagram
+
+![Sequential BCI Pipeline](./main.jpg)
+
+---
+
 ## 🚀 Quick Start
 
 1. **Clone**  
