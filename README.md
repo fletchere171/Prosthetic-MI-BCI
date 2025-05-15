@@ -44,7 +44,7 @@ Collect EEG, train a subject-specific classifier, and run inference on an embedd
 ## 📊 BCI Pipeline Flow Diagram
 
 <p align="center">
-  <img src="./main.jpg" alt="Sequential BCI Pipeline" width="600"/>
+  <img src="./main.jpg" alt="Sequential BCI Pipeline" width="400"/>
 </p>
 ---
 
