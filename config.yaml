@@ -1,0 +1,11 @@
+sessions:
+  demo:
+    board:
+      port: COM3
+      sampling_rate: 250
+    collect:
+      duration: 300     # seconds
+    train:
+      epochs: 20
+      threshold: 0.8
+      refractory_ms: 500
