@@ -80,9 +80,6 @@ class DataCollectionWidget(QWidget):
         self._remaining = 0
 
         # Timers
-        self.phase_timer = QTimer(self)
-        self.phase_timer.setSingleShot(True)
-        self.phase_timer.timeout.connect(self._phase_complete)
         self.tick_timer = QTimer(self)
         self.tick_timer.setInterval(50)
         self.tick_timer.timeout.connect(self._on_tick)
@@ -199,7 +196,6 @@ class DataCollectionWidget(QWidget):
         self.trials_done = 0
         self.phase_idx = 0
         self.current_label = None
-        self._phase_waiting = False
         self._trial_bufs.clear()
         self.data_records.clear()
         self.paused = False
@@ -212,23 +208,16 @@ class DataCollectionWidget(QWidget):
 
         # Start data collection
         self.thread.start()
-        QTimer.singleShot(0, self._next_phase)
+        self._next_phase()
 
     def _on_pause(self):
-        name, _, _, _ = self.phases[self.phase_idx]
-        if not name.startswith("Get ready"):
-            return
-
         self.paused = not self.paused
         self.pauseBtn.setText("Resume" if self.paused else "Pause")
 
         if self.paused:
-            self._remaining = self.phase_timer.remainingTime()
-            self.phase_timer.stop()
             self.tick_timer.stop()
             self.statusLabel.setText("Collection paused - press Resume when ready")
         else:
-            self.phase_timer.start(self._remaining)
             self.tick_timer.start()
             self.statusLabel.setText(f"Collection in progress: {self.trials_done}/{self.trials_total} blocks completed")
 
@@ -236,19 +225,14 @@ class DataCollectionWidget(QWidget):
         self.trials_done = self.trials_total
         self._finish_collection()
 
-    def _hide_progress_and_advance(self):
-        self.progressBar.setVisible(False)
-        self._phase_waiting = False
-        self._next_phase()
-
+    
     def _next_phase(self):
-        self._phase_waiting = False
         self._elapsed_ms = 0
 
         if self.paused or self.trials_done >= self.trials_total:
+            self._finish_collection()
             return
 
-        # Save previous trial if needed
         prev_lbl = self.current_label
         name, ms, rec_lbl, color = self.phases[self.phase_idx]
 
@@ -257,7 +241,6 @@ class DataCollectionWidget(QWidget):
             self.data_records.append((prev_lbl, trial))
             self._trial_bufs.clear()
 
-        # Update display
         self.phaseLabel.setStyleSheet(f"color: {color};")
         self.focusSymbol.setVisible(name == "Focus")
         self.phaseLabel.setVisible(name != "Focus")
@@ -268,16 +251,15 @@ class DataCollectionWidget(QWidget):
         self.current_label = rec_lbl
 
         if rec_lbl in (0, 1):
-            self._phase_ms, self._elapsed_ms = ms, 0
+            self._phase_ms = ms
             self.progressBar.setRange(0, ms)
             self.progressBar.setValue(0)
             self.progressBar.setVisible(True)
-            self.phase_timer.start(ms)
-            self.tick_timer.start()
-            print(f"Next Phase (Recording): Duration={ms}, Progress Range=[0, {ms}]")
         else:
+            self._phase_ms = ms
             self.progressBar.setVisible(False)
-            self.phase_timer.start(ms)
+
+        self.tick_timer.start()
 
         self.phase_idx += 1
         if self.phase_idx >= len(self.phases):
@@ -285,38 +267,20 @@ class DataCollectionWidget(QWidget):
             self.trials_done += 1
             self.statusLabel.setText(f"Collection in progress: {self.trials_done}/{self.trials_total} blocks completed")
 
-    ####
-    def _phase_complete(self):
-        """Simplified phase completion that just handles the transition"""
-        if self._phase_waiting:
-            return
-        
-        self._phase_waiting = True
-        self.tick_timer.stop()
-        
-        # Snap to 100% if recording phase
-        if self.current_label in (0, 1):
-            self.progressBar.setValue(self._phase_ms)
-            QTimer.singleShot(350, self._next_phase)  # Brief pause to show completion
-        else:
-            self._next_phase()
 
     def _on_tick(self):
-        """Progress bar updater - now handles completion directly"""
         if self.paused:
             return
-            
+
         self._elapsed_ms += 50
         progress = min(self._elapsed_ms, self._phase_ms)
-        self.progressBar.setValue(progress)
-        
-        # Handle completion if we've reached the end
+        if self.current_label in (0, 1):
+            self.progressBar.setValue(progress)
+
         if self._elapsed_ms >= self._phase_ms:
-            self.progressBar.setValue(self._phase_ms)  # Force 100%
             self.tick_timer.stop()
-            self._phase_complete()  # Trigger completion
-    ####
-    
+            QTimer.singleShot(350, self._next_phase)
+
     def _record_chunk(self, buf):
         if self.current_label in (0, 1):
             self._trial_bufs.append(buf.copy())
@@ -339,6 +303,10 @@ class DataCollectionWidget(QWidget):
             fname = f"bci_data_{ts}.npz"
 
             labs = np.array([l for l, _ in self.data_records])
+            print("Trial shapes:")
+            for i, (label, trial) in enumerate(self.data_records):
+                print(f"  Trial {i} - Label {label} - Shape {trial.shape}")
+
             dat = np.stack([d for _, d in self.data_records], axis=0)
 
             np.savez_compressed(fname, labels=labs, data=dat)
