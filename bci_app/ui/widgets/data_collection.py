@@ -236,8 +236,11 @@ class DataCollectionWidget(QWidget):
         prev_lbl = self.current_label
         name, ms, rec_lbl, color = self.phases[self.phase_idx]
 
-        if prev_lbl in (0, 1) and prev_lbl != rec_lbl and self._trial_bufs:
+        # Save trial if previous phase was a recording one
+        if prev_lbl in (0, 1) and self._trial_bufs:
             trial = np.concatenate(self._trial_bufs, axis=1)
+            expected_len = int(self.board.sampling_rate * (self._phase_ms / 1000))
+            trial = trial[:, :expected_len]  # trim any overrun
             self.data_records.append((prev_lbl, trial))
             self._trial_bufs.clear()
 
