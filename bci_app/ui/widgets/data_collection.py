@@ -11,9 +11,9 @@ from PyQt6.QtGui import QFont
 
 from bci_app.core.config import get_session_cfg
 from bci_app.hw.fake_board import FakeBoard
+from bci_app.core.storage import save_npz_to_box
 
 class DataCollectionThread(QThread):
-    """Continuously read EEG chunks from the board."""
     dataReady = pyqtSignal(object)
 
     def __init__(self, board, parent=None):
@@ -26,7 +26,7 @@ class DataCollectionThread(QThread):
             self.board.connect()
             self.board.start_stream()
             self._running = True
-            chunk = int(self.board.sampling_rate * 0.5)  # 500ms chunks
+            chunk = int(self.board.sampling_rate * 0.5)
             while self._running:
                 buf = self.board.read_buffer(chunk)
                 self.dataReady.emit(buf)
@@ -41,8 +41,6 @@ class DataCollectionThread(QThread):
         self.wait()
 
 class DataCollectionWidget(QWidget):
-    """Widget for EEG data collection with clear cues and focused UI."""
-
     def __init__(self, parent=None):
         super().__init__(parent)
         cfg = get_session_cfg("demo")
@@ -69,6 +67,7 @@ class DataCollectionWidget(QWidget):
         ]
 
         # State
+        self.subject_name = None
         self.trials_total = 0
         self.trials_done = 0
         self.phase_idx = 0
@@ -91,7 +90,6 @@ class DataCollectionWidget(QWidget):
         self.stopBtn.clicked.connect(self._on_stop)
 
     def _create_ui(self):
-        # Intro
         intro_text = (
             "<h2>SWITCH vs REST Data Collection</h2>"
             "<p>You will be collecting mental imagery data for two classes:</p>"
@@ -120,7 +118,6 @@ class DataCollectionWidget(QWidget):
         self.centralFrame.setFrameShape(QFrame.Shape.StyledPanel)
         self.centralFrame.setMinimumHeight(300)
 
-        # Phase label (big font)
         self.phaseLabel = QLabel("")
         self.phaseLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         phase_font = QFont()
@@ -128,11 +125,9 @@ class DataCollectionWidget(QWidget):
         phase_font.setBold(True)
         self.phaseLabel.setFont(phase_font)
 
-        # Progress info
         self.progressInfo = QLabel("")
         self.progressInfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Focus symbol (plus sign)
         self.focusSymbol = QLabel("+")
         focus_font = QFont()
         focus_font.setPointSize(72)
@@ -141,7 +136,6 @@ class DataCollectionWidget(QWidget):
         self.focusSymbol.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.focusSymbol.setVisible(False)
 
-        # Progress bar
         self.progressBar = QProgressBar()
         self.progressBar.setTextVisible(False)
         self.progressBar.setFixedHeight(30)
@@ -149,7 +143,6 @@ class DataCollectionWidget(QWidget):
         self.progressBar.setMaximumWidth(600)
         self.progressBar.setVisible(False)
 
-        # Central layout
         centralLayout = QVBoxLayout(self.centralFrame)
         centralLayout.addStretch(1)
         centralLayout.addWidget(self.phaseLabel)
@@ -158,11 +151,9 @@ class DataCollectionWidget(QWidget):
         centralLayout.addWidget(self.progressBar, alignment=Qt.AlignmentFlag.AlignCenter)
         centralLayout.addStretch(1)
 
-        # Session status
         self.statusLabel = QLabel("Ready to start")
         self.statusLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Control buttons
         self.startBtn = QPushButton("Start Collection")
         self.pauseBtn = QPushButton("Pause")
         self.pauseBtn.setEnabled(False)
@@ -174,7 +165,6 @@ class DataCollectionWidget(QWidget):
         btns.addWidget(self.pauseBtn)
         btns.addWidget(self.stopBtn)
 
-        # Main layout
         layout = QVBoxLayout(self)
         layout.addWidget(self.introLabel)
         layout.addWidget(self.centralFrame)
@@ -182,6 +172,19 @@ class DataCollectionWidget(QWidget):
         layout.addLayout(btns)
 
     def _on_start(self):
+        # Prompt for subject name if not set
+        while not self.subject_name:
+            name, ok = QInputDialog.getText(
+                self, "Subject Name", "Enter a subject/user name for this session:"
+            )
+            if not ok:
+                return
+            name = name.strip()
+            if name:
+                self.subject_name = name
+            else:
+                QMessageBox.warning(self, "Missing Name", "Please enter a valid (non-empty) subject/user name.")
+
         n, ok = QInputDialog.getInt(
             self, "Configure Collection", "Number of full SWITCH+REST blocks:",
             value=20, min=1, max=100
@@ -190,8 +193,6 @@ class DataCollectionWidget(QWidget):
             return
 
         self.introLabel.hide()
-
-        # Reset state
         self.trials_total = n
         self.trials_done = 0
         self.phase_idx = 0
@@ -200,20 +201,17 @@ class DataCollectionWidget(QWidget):
         self.data_records.clear()
         self.paused = False
 
-        # Update UI
         self.startBtn.setEnabled(False)
         self.pauseBtn.setEnabled(True)
         self.stopBtn.setEnabled(True)
         self.statusLabel.setText(f"Collection in progress: 0/{self.trials_total} blocks completed")
 
-        # Start data collection
         self.thread.start()
         self._next_phase()
 
     def _on_pause(self):
         self.paused = not self.paused
         self.pauseBtn.setText("Resume" if self.paused else "Pause")
-
         if self.paused:
             self.tick_timer.stop()
             self.statusLabel.setText("Collection paused - press Resume when ready")
@@ -225,22 +223,18 @@ class DataCollectionWidget(QWidget):
         self.trials_done = self.trials_total
         self._finish_collection()
 
-    
     def _next_phase(self):
         self._elapsed_ms = 0
-
         if self.paused or self.trials_done >= self.trials_total:
             self._finish_collection()
             return
 
         prev_lbl = self.current_label
         name, ms, rec_lbl, color = self.phases[self.phase_idx]
-
-        # Save trial if previous phase was a recording one
         if prev_lbl in (0, 1) and self._trial_bufs:
             trial = np.concatenate(self._trial_bufs, axis=1)
             expected_len = int(self.board.sampling_rate * (self._phase_ms / 1000))
-            trial = trial[:, :expected_len]  # trim any overrun
+            trial = trial[:, :expected_len]
             self.data_records.append((prev_lbl, trial))
             self._trial_bufs.clear()
 
@@ -270,7 +264,6 @@ class DataCollectionWidget(QWidget):
             self.trials_done += 1
             self.statusLabel.setText(f"Collection in progress: {self.trials_done}/{self.trials_total} blocks completed")
 
-
     def _on_tick(self):
         if self.paused:
             return
@@ -290,7 +283,6 @@ class DataCollectionWidget(QWidget):
 
     def _finish_collection(self):
         self.thread.stop()
-
         self.pauseBtn.setEnabled(False)
         self.stopBtn.setEnabled(False)
         self.startBtn.setEnabled(True)
@@ -300,22 +292,16 @@ class DataCollectionWidget(QWidget):
         self.progressBar.setVisible(False)
         self.statusLabel.setText(f"Completed {self.trials_done} blocks of SWITCH/REST data")
 
-        # Save collected data
+        # Save collected data to Box using subject name!
         if self.data_records:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            fname = f"bci_data_{ts}.npz"
-
             labs = np.array([l for l, _ in self.data_records])
-            print("Trial shapes:")
-            for i, (label, trial) in enumerate(self.data_records):
-                print(f"  Trial {i} - Label {label} - Shape {trial.shape}")
-
             dat = np.stack([d for _, d in self.data_records], axis=0)
-
-            np.savez_compressed(fname, labels=labs, data=dat)
-
-            stats = f"Saved {len(self.data_records)} trials ({len(labs[labs==0])} REST, {len(labs[labs==1])} SWITCH)"
-            QMessageBox.information(self, "Data Saved", f"Collection complete!\n\n{stats}\n\nFile saved to: {fname}")
+            try:
+                path = save_npz_to_box(dat, labs, self.subject_name, kind="training")
+                stats = f"Saved {len(self.data_records)} trials ({len(labs[labs==0])} REST, {len(labs[labs==1])} SWITCH)"
+                QMessageBox.information(self, "Data Saved", f"Collection complete!\n\n{stats}\n\nFile saved to:\n{path}")
+            except Exception as e:
+                QMessageBox.warning(self, "Box Save Failed", f"Data collection finished but could not save to Box:\n{e}")
         else:
             QMessageBox.warning(self, "No Data", "No data was collected.")
 
